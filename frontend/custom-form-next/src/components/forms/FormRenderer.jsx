@@ -7,11 +7,20 @@ import ImageChoiceField from '../fields/ImageChoiceField';
 export default function FormRenderer({ form, isPreview = false, onSubmit }) {
   const [formValues, setFormValues] = useState({});
 
+  useEffect(() => {
+    console.log('FormRenderer mounted with form fields:', form?.fields?.length, 'fields');
+  }, [form]);
+
   const handleFieldChange = (fieldId, value) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [fieldId]: value,
-    }));
+    console.log('Field change:', fieldId, value);
+    setFormValues((prev) => {
+      const updated = {
+        ...prev,
+        [fieldId]: value,
+      };
+      console.log('Updated formValues:', updated);
+      return updated;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -85,7 +94,7 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {form.fields.map((field) => (
         <div key={field._id} id={`field-wrapper-${field._id}`} className={shouldShowField(field) ? '' : 'hidden'}>
-          {renderField(field, isPreview, formValues[field._id], handleFieldChange)}
+          {renderField(field, isPreview, formValues[field._id], (value) => handleFieldChange(field._id, value))}
         </div>
       ))}
 
@@ -102,12 +111,6 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
 }
 
 function renderField(field, isPreview, value, onChange) {
-  const commonProps = {
-    required: field.required,
-    disabled: isPreview,
-    className: 'input',
-  };
-
   // Special components for new field types
   if (field.type === 'matrix') {
     return <MatrixField field={field} value={value} onChange={onChange} />;
@@ -133,11 +136,19 @@ function renderField(field, isPreview, value, onChange) {
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </label>
           <input
+            key={field._id}
             type={field.type === 'short_text' ? 'text' : field.type}
             value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              console.log('Input changed:', field._id, e.target.value);
+              onChange(e.target.value);
+            }}
             placeholder={field.placeholder}
-            {...commonProps}
+            required={field.required}
+            className="input"
+            disabled={isPreview || false}
+            autoComplete="off"
+            spellCheck="false"
           />
         </div>
       );
@@ -154,7 +165,9 @@ function renderField(field, isPreview, value, onChange) {
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
             rows={3}
-            {...commonProps}
+            required={field.required}
+            className="input"
+            disabled={isPreview || false}
           />
         </div>
       );
@@ -169,7 +182,9 @@ function renderField(field, isPreview, value, onChange) {
           <select
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
-            {...commonProps}
+            required={field.required}
+            className="input"
+            disabled={isPreview || false}
           >
             <option value="">Select...</option>
             {field.options?.map((opt) => (
@@ -195,7 +210,7 @@ function renderField(field, isPreview, value, onChange) {
                   type="radio"
                   checked={value === opt}
                   onChange={() => onChange(opt)}
-                  disabled={isPreview}
+                  disabled={isPreview || false}
                 />
                 <span className="text-sm">{opt}</span>
               </label>
@@ -221,7 +236,7 @@ function renderField(field, isPreview, value, onChange) {
                     const newVal = e.target.checked ? [...(value || []), opt] : (value || []).filter(v => v !== opt);
                     onChange(newVal);
                   }}
-                  disabled={isPreview}
+                  disabled={isPreview || false}
                 />
                 <span className="text-sm">{opt}</span>
               </label>
@@ -242,7 +257,9 @@ function renderField(field, isPreview, value, onChange) {
             type="file"
             onChange={(e) => onChange(e.target.files?.[0])}
             accept={fileTypes}
-            {...commonProps}
+            required={field.required}
+            className="input"
+            disabled={isPreview || false}
           />
           <p className="text-xs text-slate-500">
             Max size: {field.maxFileSize || 5} MB. Allowed types: {fileTypes}
@@ -263,7 +280,7 @@ function renderField(field, isPreview, value, onChange) {
                 key={star}
                 type="button"
                 onClick={() => onChange(star)}
-                disabled={isPreview}
+                disabled={isPreview || false}
                 className={`w-8 h-8 transition-colors ${
                   value === star || value >= star
                     ? 'text-yellow-400'
@@ -289,7 +306,9 @@ function renderField(field, isPreview, value, onChange) {
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
             placeholder={field.placeholder}
-            {...commonProps}
+            required={field.required}
+            className="input"
+            disabled={isPreview || false}
           />
         </div>
       );

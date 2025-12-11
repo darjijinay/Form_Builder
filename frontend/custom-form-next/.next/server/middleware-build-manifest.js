@@ -24,6 +24,16 @@ self.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/app/analytics.js"
     ],
+    "/app/dashboard": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/app/dashboard.js"
+    ],
+    "/app/forms": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/app/forms.js"
+    ],
     "/app/forms/builder/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
@@ -34,10 +44,10 @@ self.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/app/settings.js"
     ],
-    "/app/templates": [
+    "/public/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/app/templates.js"
+      "static/chunks/pages/public/[id].js"
     ]
   },
   "ampFirstPages": []
