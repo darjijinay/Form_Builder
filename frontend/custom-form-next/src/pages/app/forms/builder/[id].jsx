@@ -282,12 +282,28 @@ export default function FormBuilderPage() {
                       type="checkbox"
                       id="notify_toggle"
                       checked={!!form.settings?.notifyOnSubmission}
-                      onChange={(e) => {
+                      onChange={async (e) => {
+                        const newForm = {...form};
                         if (e.target.checked && !form.settings?.notificationEmail && user?.email) {
                           // Auto-fill with user's email when checkbox is enabled
-                          setForm({...form, settings: {...form.settings, notifyOnSubmission: true, notificationEmail: user.email}});
+                          newForm.settings = {...form.settings, notifyOnSubmission: true, notificationEmail: user.email};
                         } else {
-                          setForm({...form, settings: {...form.settings, notifyOnSubmission: e.target.checked}});
+                          newForm.settings = {...form.settings, notifyOnSubmission: e.target.checked};
+                        }
+                        setForm(newForm);
+                        
+                        // Auto-save immediately
+                        try {
+                          setSaving(true);
+                          const { data } = await formApi.updateForm(form._id, newForm);
+                          setForm(data);
+                          setStatus('✓ Settings saved');
+                          setTimeout(() => setStatus(''), 2000);
+                        } catch (error) {
+                          console.error('Error saving settings:', error);
+                          setStatus('Error saving');
+                        } finally {
+                          setSaving(false);
                         }
                       }}
                       className="w-4 h-4"
@@ -340,7 +356,27 @@ export default function FormBuilderPage() {
 
               <div className="mt-6 flex justify-between">
                 <button onClick={() => setStep(2)} className="px-4 py-2 rounded-xl border">← Back</button>
-                <div />
+                <button 
+                  onClick={async () => {
+                    setSaving(true);
+                    setStatus('Saving…');
+                    try {
+                      const { data } = await formApi.updateForm(form._id, form);
+                      setForm(data);
+                      setStatus('Form saved ✓');
+                      setTimeout(() => setStatus(''), 2000);
+                    } catch (error) {
+                      console.error('Error saving form:', error);
+                      setStatus('Error saving form');
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={saving}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Settings'}
+                </button>
               </div>
             </div>
           )}

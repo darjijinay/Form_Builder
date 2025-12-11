@@ -1,14 +1,32 @@
 // server/src/services/emailService.js
 const nodemailer = require('nodemailer');
 
-// Initialize transporter (configure with your email service)
-const transporter = nodemailer.createTransport({
-  service: process.env.EMAIL_SERVICE || 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+// Lazy-load transporter to ensure env vars are loaded
+let transporter = null;
+
+function getTransporter() {
+  if (!transporter) {
+    console.log('[EMAIL] Initializing transporter with:');
+    console.log('  HOST:', process.env.EMAIL_HOST);
+    console.log('  PORT:', process.env.EMAIL_PORT);
+    console.log('  USER:', process.env.EMAIL_USER);
+    console.log('  PASS exists:', !!process.env.EMAIL_PASS);
+    
+    transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+      port: Number(process.env.EMAIL_PORT) || 587,
+      secure: false, // STARTTLS
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+  }
+  return transporter;
+}
 
 /**
  * Send notification email when form is submitted
@@ -17,8 +35,13 @@ const transporter = nodemailer.createTransport({
  * @param {Array} answers - Array of {fieldId, value} pairs
  */
 exports.sendResponseNotification = async (notificationEmail, form, answers) => {
+  console.log('📧 [EMAIL SERVICE] Starting email send...');
+  console.log('   Recipient:', notificationEmail);
+  console.log('   From:', process.env.EMAIL_USER);
+  console.log('   Has credentials:', !!process.env.EMAIL_USER && !!process.env.EMAIL_PASS);
+  
   if (!notificationEmail || !process.env.EMAIL_USER) {
-    console.log('Email notification skipped: no recipient or credentials');
+    console.log('❌ [EMAIL SERVICE] Skipped: missing recipient or credentials');
     return;
   }
 
@@ -60,16 +83,16 @@ exports.sendResponseNotification = async (notificationEmail, form, answers) => {
       </html>
     `;
 
-    await transporter.sendMail({
+    await getTransporter().sendMail({
       from: process.env.EMAIL_USER,
       to: notificationEmail,
       subject: `New Response: ${form.title}`,
       html: htmlContent,
     });
 
-    console.log(`Email sent to ${notificationEmail}`);
+    console.log('✅ [EMAIL SERVICE] Email sent successfully to:', notificationEmail);
   } catch (err) {
-    console.error('Error sending email:', err);
+    console.error('❌ [EMAIL SERVICE] Error sending email:', err.message);
     // Don't throw - don't block form submission if email fails
   }
 };
