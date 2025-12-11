@@ -19,25 +19,20 @@ self.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/app/analytics": [
+    "/app/forms": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/app/analytics.js"
+      "static/chunks/pages/app/forms.js"
     ],
     "/app/forms/builder/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/app/forms/builder/[id].js"
     ],
-    "/app/settings": [
+    "/public/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/app/settings.js"
-    ],
-    "/app/templates": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/app/templates.js"
+      "static/chunks/pages/public/[id].js"
     ]
   },
   "ampFirstPages": []
