@@ -273,29 +273,57 @@ export default function FormBuilderPage() {
               </div>
 
               <div className="grid md:grid-cols-2 gap-4 items-start">
-                <div>
+                <div className="space-y-3 border rounded-lg p-4 bg-slate-50">
+                  <h3 className="font-semibold text-sm">Email Notifications</h3>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="notify_toggle"
+                      checked={!!form.settings?.notifyOnSubmission}
+                      onChange={(e) => setForm({...form, settings: {...form.settings, notifyOnSubmission: e.target.checked}})}
+                      className="w-4 h-4"
+                    />
+                    <label htmlFor="notify_toggle" className="text-sm cursor-pointer">Notify me when form is submitted</label>
+                  </div>
+
+                  {form.settings?.notifyOnSubmission && (
+                    <div>
+                      <label className="text-xs font-medium text-slate-700 block mb-1">Send notifications to:</label>
+                      <input
+                        type="email"
+                        value={form.settings?.notificationEmail || ''}
+                        onChange={(e) => setForm({...form, settings: {...form.settings, notificationEmail: e.target.value}})}
+                        placeholder="your@email.com"
+                        className="w-full px-3 py-2 border rounded text-sm"
+                      />
+                      <p className="text-xs text-slate-500 mt-1">You'll receive an email each time someone submits the form.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={!!form.settings?.isPublic} onChange={(e) => setForm({...form, settings: {...form.settings, isPublic: e.target.checked}})} />
                     <span className="text-sm">Make form public</span>
                   </label>
                   <p className="text-sm text-slate-500 mt-2">When published, anyone with the link can view and submit this form.</p>
                 </div>
+              </div>
 
-                <div className="bg-slate-50 p-4 rounded">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-slate-600">Share link</div>
-                    <div className="text-xs text-slate-400">Copy to clipboard</div>
-                  </div>
-                  <div className="mt-2 flex gap-2">
-                    <input readOnly value={form._id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/public/${form._id}` : ''} className="flex-1 px-3 py-2 border rounded" />
-                    <button onClick={() => {
-                      const url = form._id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/public/${form._id}` : '';
-                      if (!url) return;
-                      navigator.clipboard?.writeText(url).then(()=> alert('Link copied'));
-                    }} className="px-3 py-2 rounded bg-indigo-600 text-white">Copy</button>
-                  </div>
-                  <div className="mt-2 text-xs text-slate-500">Public URL: <code className="break-all">{form._id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/public/${form._id}` : '-'}</code></div>
+              <div className="bg-slate-50 p-4 rounded mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-slate-600">Share link</div>
+                  <div className="text-xs text-slate-400">Copy to clipboard</div>
                 </div>
+                <div className="mt-2 flex gap-2">
+                  <input readOnly value={form._id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/public/${form._id}` : ''} className="flex-1 px-3 py-2 border rounded" />
+                  <button onClick={() => {
+                    const url = form._id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/public/${form._id}` : '';
+                    if (!url) return;
+                    navigator.clipboard?.writeText(url).then(()=> alert('Link copied'));
+                  }} className="px-3 py-2 rounded bg-indigo-600 text-white">Copy</button>
+                </div>
+                <div className="mt-2 text-xs text-slate-500">Public URL: <code className="break-all">{form._id ? `${typeof window !== 'undefined' ? window.location.origin : ''}/public/${form._id}` : '-'}</code></div>
               </div>
 
               <div className="mt-6 flex justify-between">

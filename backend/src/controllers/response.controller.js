@@ -2,6 +2,7 @@
 const Response = require('../models/Response');
 const Form = require('../models/Form');
 const { Parser } = require('json2csv');
+const { sendResponseNotification } = require('../services/emailService');
 
 // Public: submit a response
 exports.submitResponse = async (req, res, next) => {
@@ -30,6 +31,13 @@ exports.submitResponse = async (req, res, next) => {
           '',
       },
     });
+
+    // Send email notification if enabled
+    if (form.settings?.notifyOnSubmission && form.settings?.notificationEmail) {
+      sendResponseNotification(form.settings.notificationEmail, form, sanitizedAnswers).catch((err) => {
+        console.error('Failed to send notification email:', err);
+      });
+    }
 
     res.status(201).json({ message: 'Response submitted', responseId: response._id });
   } catch (err) {

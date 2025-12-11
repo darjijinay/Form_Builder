@@ -17,6 +17,9 @@ const fieldSchema = new mongoose.Schema(
         'radio',
         'file',
         'rating',
+        'matrix',
+        'signature',
+        'image_choice',
       ],
       required: true,
     },
@@ -45,6 +48,8 @@ const fieldSchema = new mongoose.Schema(
       },
       value: String,
     },
+    matrixRows: [{ type: String }], // for matrix/grid type
+    matrixColumns: [{ type: String }], // for matrix/grid type
   },
   { _id: false }
 );
@@ -82,6 +87,8 @@ const formSchema = new mongoose.Schema(
     },
     settings: {
       isPublic: { type: Boolean, default: true },
+      notificationEmail: String,
+      notifyOnSubmission: { type: Boolean, default: false },
       theme: {
         primaryColor: { type: String, default: '#6366f1' },
         accentColor: { type: String, default: '#22c55e' },

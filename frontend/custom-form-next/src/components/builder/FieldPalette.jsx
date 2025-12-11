@@ -4,11 +4,16 @@ const FIELDS = [
   { type: 'long_text', label: 'Long Text' },
   { type: 'email', label: 'Email' },
   { type: 'number', label: 'Number' },
+  { type: 'date', label: 'Date' },
+  { type: 'time', label: 'Time' },
   { type: 'dropdown', label: 'Dropdown' },
   { type: 'radio', label: 'Multiple Choice (Radio)' },
   { type: 'checkbox', label: 'Checkboxes' },
-  { type: 'file', label: 'File Upload' },
   { type: 'rating', label: 'Rating (1-5)' },
+  { type: 'file', label: 'File Upload' },
+  { type: 'matrix', label: 'Matrix / Grid' },
+  { type: 'signature', label: 'Signature' },
+  { type: 'image_choice', label: 'Image Choice' },
 ];
 
 export default function FieldPalette({ onAddField }) {

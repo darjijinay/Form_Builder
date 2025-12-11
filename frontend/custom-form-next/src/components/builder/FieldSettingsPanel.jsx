@@ -61,6 +61,46 @@ export default function FieldSettingsPanel({ field, fields = [], onChange }) {
         </div>
       )}
 
+      {field.type === 'matrix' && (
+        <div className="space-y-2 border-t border-slate-200 pt-3">
+          <div className="text-xs text-slate-600 uppercase mb-2">Matrix Settings</div>
+          
+          <div>
+            <div className="text-xs text-slate-500 mb-1">Rows (comma separated)</div>
+            <input
+              value={field.matrixRows?.join(', ') || ''}
+              onChange={(e) =>
+                onChange({
+                  matrixRows: e.target.value
+                    .split(',')
+                    .map((r) => r.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="Row 1, Row 2, Row 3"
+              className="input"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs text-slate-500 mb-1">Columns (comma separated)</div>
+            <input
+              value={field.matrixColumns?.join(', ') || ''}
+              onChange={(e) =>
+                onChange({
+                  matrixColumns: e.target.value
+                    .split(',')
+                    .map((c) => c.trim())
+                    .filter(Boolean),
+                })
+              }
+              placeholder="Column 1, Column 2, Column 3"
+              className="input"
+            />
+          </div>
+        </div>
+      )}
+
       {field.type === 'file' && (
         <div className="space-y-2 border-t border-slate-200 pt-3">
           <div className="text-xs text-slate-600 uppercase mb-2">File Upload Settings</div>

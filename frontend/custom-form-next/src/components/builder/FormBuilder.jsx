@@ -10,11 +10,16 @@ const DEFAULT_FIELD_CONFIGS = {
   long_text: { label: 'Long answer', placeholder: 'Type your answer' },
   email: { label: 'Email', placeholder: 'example@domain.com' },
   number: { label: 'Number', placeholder: 'Enter a number' },
+  date: { label: 'Date', placeholder: '' },
+  time: { label: 'Time', placeholder: '' },
   dropdown: { label: 'Dropdown', options: ['Option 1', 'Option 2'] },
   radio: { label: 'Multiple choice', options: ['Option 1', 'Option 2'] },
   checkbox: { label: 'Checkboxes', options: ['Option 1', 'Option 2'] },
   file: { label: 'File Upload', placeholder: 'Choose a file' },
   rating: { label: 'Rating', placeholder: 'Select a rating' },
+  matrix: { label: 'Matrix', matrixRows: ['Row 1', 'Row 2'], matrixColumns: ['Column 1', 'Column 2'] },
+  signature: { label: 'Signature', placeholder: '' },
+  image_choice: { label: 'Image Choice', options: [{id: '1', label: 'Option 1', url: ''}, {id: '2', label: 'Option 2', url: ''}] },
 };
 
 export default function FormBuilder({ initialForm, onChange }) {

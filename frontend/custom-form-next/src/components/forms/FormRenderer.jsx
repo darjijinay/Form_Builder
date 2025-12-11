@@ -1,11 +1,22 @@
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import MatrixField from '../fields/MatrixField';
+import SignatureField from '../fields/SignatureField';
+import ImageChoiceField from '../fields/ImageChoiceField';
 
 export default function FormRenderer({ form, isPreview = false, onSubmit }) {
+  const [formValues, setFormValues] = useState({});
+
+  const handleFieldChange = (fieldId, value) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [fieldId]: value,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     if (isPreview) return;
     e.preventDefault();
-    const formEl = e.target;
 
     // Build answers array, uploading files when necessary
     const answers = [];
@@ -13,12 +24,10 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
     for (const field of form.fields) {
       try {
         if (field.type === 'file') {
-          const input = formEl.querySelector(`[name="${field._id}"]`);
-          const file = input?.files?.[0];
-          if (file) {
+          const value = formValues[field._id];
+          if (value instanceof File) {
             const fd = new FormData();
-            fd.append('file', file);
-            // upload to backend (use NEXT_PUBLIC_API_URL when available)
+            fd.append('file', value);
             const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
             const uploadEndpoint = `${apiBase}/uploads`;
             const res = await fetch(uploadEndpoint, {
@@ -29,22 +38,13 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
               const body = await res.json();
               answers.push({ fieldId: field._id, value: body.url || body.filename });
             } else {
-              // push a placeholder or filename on failure
-              answers.push({ fieldId: field._id, value: file.name });
+              answers.push({ fieldId: field._id, value: value.name });
             }
           } else {
-            answers.push({ fieldId: field._id, value: null });
+            answers.push({ fieldId: field._id, value: value || null });
           }
-        } else if (field.type === 'checkbox') {
-          const inputs = Array.from(formEl.querySelectorAll(`[name="${field._id}"]`));
-          const vals = inputs.filter(i => i.checked).map(i => i.value);
-          answers.push({ fieldId: field._id, value: vals });
-        } else if (field.type === 'radio') {
-          const input = formEl.querySelector(`[name="${field._id}"]:checked`);
-          answers.push({ fieldId: field._id, value: input ? input.value : '' });
         } else {
-          const input = formEl.querySelector(`[name="${field._id}"]`);
-          answers.push({ fieldId: field._id, value: input ? input.value : '' });
+          answers.push({ fieldId: field._id, value: formValues[field._id] || null });
         }
       } catch (err) {
         answers.push({ fieldId: field._id, value: null });
@@ -54,78 +54,38 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
     onSubmit?.(answers);
   };
 
+
   useEffect(() => {
-    if (!form || !form.fields) return;
+    // Conditional logic will be handled by the renderField function checking formValues
+  }, [form, formValues]);
 
-    const applyLogic = (logicField, targetFieldId) => {
-      try {
-        const wrapper = document.getElementById(`field-wrapper-${targetFieldId}`);
-        if (!wrapper) return;
-        const refName = logicField.showWhenFieldId;
-        const refInputs = Array.from(document.querySelectorAll(`[name="${refName}"]`));
-        if (refInputs.length === 0) {
-          wrapper.style.display = 'none';
-          return;
-        }
-
-        // compute value
-        let val;
-        if (refInputs[0].type === 'checkbox') {
-          val = refInputs.filter(i => i.checked).map(i => i.value);
-        } else if (refInputs[0].type === 'radio') {
-          const r = refInputs.find(i => i.checked);
-          val = r ? r.value : '';
-        } else {
-          val = refInputs[0].value;
-        }
-
-        const op = logicField.operator || 'equals';
-        const targetVal = logicField.value || '';
-        let matched = false;
-        if (Array.isArray(val)) {
-          if (op === 'contains') matched = val.includes(targetVal);
-          else if (op === 'equals') matched = val.length > 0 && String(val[0]) === String(targetVal);
-          else matched = !(val.length > 0 && String(val[0]) === String(targetVal));
-        } else {
-          if (op === 'contains') matched = String(val || '').includes(targetVal);
-          else if (op === 'equals') matched = String(val || '') === String(targetVal);
-          else matched = String(val || '') !== String(targetVal);
-        }
-
-        wrapper.style.display = matched ? '' : 'none';
-      } catch (e) {
-        // ignore
-      }
-    };
-
-    const listeners = [];
-    form.fields.forEach((f) => {
-      if (!f.logic || !f.logic.showWhenFieldId) return;
-      const refName = f.logic.showWhenFieldId;
-      const refInputs = Array.from(document.querySelectorAll(`[name="${refName}"]`));
-      // initial apply
-      applyLogic(f.logic, f._id);
-      refInputs.forEach((inp) => {
-        const fn = () => applyLogic(f.logic, f._id);
-        inp.addEventListener('change', fn);
-        listeners.push({ inp, fn });
-      });
-    });
-
-    return () => {
-      listeners.forEach(({ inp, fn }) => inp.removeEventListener('change', fn));
-    };
-  }, [form]);
+  const shouldShowField = (field) => {
+    if (!field.logic || !field.logic.showWhenFieldId) return true;
+    const { showWhenFieldId, operator, value: condValue } = field.logic;
+    const fieldValue = formValues[showWhenFieldId];
+    if (fieldValue === undefined || fieldValue === null) return false;
+    
+    const op = operator || 'equals';
+    const val = String(fieldValue);
+    const targetVal = String(condValue || '');
+    
+    switch (op) {
+      case 'equals':
+        return val === targetVal;
+      case 'not_equals':
+        return val !== targetVal;
+      case 'contains':
+        return val.includes(targetVal);
+      default:
+        return true;
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {form.fields.map((field) => (
-        <div key={field._id} id={`field-wrapper-${field._id}`} className="space-y-1">
-          <label className="block text-sm font-medium text-[var(--text)]">
-            {field.label}
-            {field.required && <span className="text-red-500 ml-1">*</span>}
-          </label>
-          {renderField(field, isPreview)}
+        <div key={field._id} id={`field-wrapper-${field._id}`} className={shouldShowField(field) ? '' : 'hidden'}>
+          {renderField(field, isPreview, formValues[field._id], handleFieldChange)}
         </div>
       ))}
 
@@ -141,70 +101,148 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
   );
 }
 
-function renderField(field, isPreview) {
+function renderField(field, isPreview, value, onChange) {
   const commonProps = {
-    id: field._id,
-    name: field._id,
     required: field.required,
-    placeholder: field.placeholder,
     disabled: isPreview,
     className: 'input',
   };
 
-  
+  // Special components for new field types
+  if (field.type === 'matrix') {
+    return <MatrixField field={field} value={value} onChange={onChange} />;
+  }
+  if (field.type === 'signature') {
+    return <SignatureField field={field} value={value} onChange={onChange} />;
+  }
+  if (field.type === 'image_choice') {
+    return <ImageChoiceField field={field} value={value} onChange={onChange} />;
+  }
+
+  // Standard HTML form fields
   switch (field.type) {
     case 'short_text':
     case 'email':
     case 'number':
-      return <input type={field.type === 'short_text' ? 'text' : field.type} {...commonProps} />;
+    case 'date':
+    case 'time':
+      return (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <input
+            type={field.type === 'short_text' ? 'text' : field.type}
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={field.placeholder}
+            {...commonProps}
+          />
+        </div>
+      );
 
     case 'long_text':
-      return <textarea rows={3} {...commonProps} />;
+      return (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <textarea
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={field.placeholder}
+            rows={3}
+            {...commonProps}
+          />
+        </div>
+      );
 
     case 'dropdown':
       return (
-        <select {...commonProps}>
-          <option value="">Select...</option>
-          {field.options?.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <select
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            {...commonProps}
+          >
+            <option value="">Select...</option>
+            {field.options?.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
       );
 
     case 'radio':
       return (
-        <div className="space-y-2">
-          {(field.options || []).map((opt) => (
-            <label key={opt} className="flex items-center gap-2">
-              <input type="radio" name={field._id} value={opt} disabled={isPreview} />
-              <span className="text-sm">{opt}</span>
-            </label>
-          ))}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <div className="space-y-2">
+            {(field.options || []).map((opt) => (
+              <label key={opt} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  checked={value === opt}
+                  onChange={() => onChange(opt)}
+                  disabled={isPreview}
+                />
+                <span className="text-sm">{opt}</span>
+              </label>
+            ))}
+          </div>
         </div>
       );
 
     case 'checkbox':
       return (
-        <div className="space-y-2">
-          {(field.options || []).map((opt) => (
-            <label key={opt} className="flex items-center gap-2">
-              <input type="checkbox" name={field._id} value={opt} disabled={isPreview} />
-              <span className="text-sm">{opt}</span>
-            </label>
-          ))}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <div className="space-y-2">
+            {(field.options || []).map((opt) => (
+              <label key={opt} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={(value || []).includes(opt)}
+                  onChange={(e) => {
+                    const newVal = e.target.checked ? [...(value || []), opt] : (value || []).filter(v => v !== opt);
+                    onChange(newVal);
+                  }}
+                  disabled={isPreview}
+                />
+                <span className="text-sm">{opt}</span>
+              </label>
+            ))}
+          </div>
         </div>
       );
 
     case 'file':
       const fileTypes = field.fileTypes || '.pdf,.doc,.docx,.jpg,.png';
       return (
-        <div className="space-y-2">
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
           <input
             type="file"
-            {...commonProps}
+            onChange={(e) => onChange(e.target.files?.[0])}
             accept={fileTypes}
+            {...commonProps}
           />
           <p className="text-xs text-slate-500">
             Max size: {field.maxFileSize || 5} MB. Allowed types: {fileTypes}
@@ -214,31 +252,46 @@ function renderField(field, isPreview) {
 
     case 'rating':
       return (
-        <div className="flex gap-3">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <label key={star} className="flex items-center cursor-pointer">
-              <input
-                type="radio"
-                name={field._id}
-                value={star}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <div className="flex gap-3">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <button
+                key={star}
+                type="button"
+                onClick={() => onChange(star)}
                 disabled={isPreview}
-                className="sr-only"
-              />
-              <svg
                 className={`w-8 h-8 transition-colors ${
-                  isPreview ? 'text-slate-300' : 'text-slate-300 hover:text-yellow-400'
+                  value === star || value >= star
+                    ? 'text-yellow-400'
+                    : 'text-slate-300 hover:text-yellow-200'
                 }`}
-                fill="currentColor"
-                viewBox="0 0 20 20"
               >
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-            </label>
-          ))}
+                ★
+              </button>
+            ))}
+          </div>
         </div>
       );
 
     default:
-      return <input type="text" {...commonProps} />;
+      return (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-[var(--text)]">
+            {field.label}
+            {field.required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          <input
+            type="text"
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={field.placeholder}
+            {...commonProps}
+          />
+        </div>
+      );
   }
 }
