@@ -4,12 +4,10 @@ import AppLayout from '../../../../components/layout/AppLayout';
 import FormBuilder from '../../../../components/builder/FormBuilder';
 import { useEffect, useState, useRef } from 'react';
 import { formApi } from '../../../../api/formApi';
-import { useAuthStore } from '../../../../store/authStore';
 
 export default function FormBuilderPage() {
   const router = useRouter();
   const { id } = router.query;
-  const user = useAuthStore((state) => state.user);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
@@ -42,12 +40,7 @@ export default function FormBuilderPage() {
 
       try {
         const { data } = await formApi.getForm(id);
-        // Ensure customDetails is always an array
-        const formData = {
-          ...data,
-          customDetails: Array.isArray(data.customDetails) ? data.customDetails : [],
-        };
-        setForm(formData);
+        setForm(data);
       } catch (error) {
         console.error('Error loading form:', error);
       }
@@ -205,46 +198,25 @@ export default function FormBuilderPage() {
 
               <div>
                 <h4 className="font-semibold">Additional Details (custom)</h4>
-                <p className="text-sm text-slate-500 mb-3">Use this section to add more structured details about the event/purpose (e.g., Speaker Name, Duration, Eligibility, Logo, etc.).</p>
+                <p className="text-sm text-slate-500 mb-2">Use this section to add more structured details about the event/purpose (e.g., Speaker Name, Duration, Eligibility, Logo, etc.).</p>
+                {/* simple list input for custom details */}
                 {(form.customDetails || []).map((d, idx) => (
-                  <div key={idx} className="grid gap-2 md:grid-cols-2 items-center mb-3">
-                    <input 
-                      value={d?.label || ''} 
-                      onChange={(e) => {
-                        const next = [...(form.customDetails || [])]; 
-                        if (!next[idx]) next[idx] = { label: '', value: '' };
-                        next[idx] = { ...next[idx], label: e.target.value }; 
-                        setForm({...form, customDetails: next});
-                      }} 
-                      placeholder="Detail Label (e.g., Speaker Name)" 
-                      className="px-3 py-2 border rounded-xl" 
-                    />
+                  <div key={idx} className="grid gap-2 md:grid-cols-2 items-center mb-2">
+                    <input value={d.label} onChange={(e) => {
+                      const next = [...form.customDetails]; next[idx] = {...next[idx], label: e.target.value}; setForm({...form, customDetails: next});
+                    }} placeholder="Detail Label" className="px-3 py-2 border rounded-xl" />
                     <div className="flex gap-2">
-                      <input 
-                        value={d?.value || ''} 
-                        onChange={(e) => { 
-                          const next = [...(form.customDetails || [])]; 
-                          if (!next[idx]) next[idx] = { label: '', value: '' };
-                          next[idx] = { ...next[idx], value: e.target.value }; 
-                          setForm({...form, customDetails: next}); 
-                        }} 
-                        placeholder="Value" 
-                        className="flex-1 px-3 py-2 border rounded-xl" 
-                      />
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          const next = (form.customDetails || []).filter((_, i) => i !== idx);
-                          setForm({...form, customDetails: next});
-                        }} 
-                        className="px-3 py-2 text-red-500 hover:bg-red-50 rounded font-semibold">✕</button>
+                      <input value={d.value} onChange={(e) => { const next = [...form.customDetails]; next[idx] = {...next[idx], value: e.target.value}; setForm({...form, customDetails: next}); }} placeholder="Value" className="flex-1 px-3 py-2 border rounded-xl" />
+                      <button onClick={() => {
+                        const next = form.customDetails.filter((_, i) => i !== idx);
+                        setForm({...form, customDetails: next});
+                      }} className="px-2 py-2 text-red-500 hover:bg-red-50 rounded">✕</button>
                     </div>
                   </div>
                 ))}
-                <button 
-                  type="button"
-                  onClick={() => setForm({...form, customDetails: [...(form.customDetails||[]), { label: '', value: '' }]})} 
-                  className="mt-3 px-4 py-2 rounded-full border border-slate-300 hover:bg-slate-50 font-semibold text-sm">+ Add Detail</button>
+                <div className="mt-2">
+                  <button onClick={() => setForm({...form, customDetails: [...(form.customDetails||[]), { label: '', value: '' }]})} className="px-3 py-2 rounded-full border">+ Add Detail</button>
+                </div>
               </div>
 
               <div className="mt-6 flex justify-between">
@@ -308,14 +280,7 @@ export default function FormBuilderPage() {
                       type="checkbox"
                       id="notify_toggle"
                       checked={!!form.settings?.notifyOnSubmission}
-                      onChange={(e) => {
-                        if (e.target.checked && !form.settings?.notificationEmail && user?.email) {
-                          // Auto-fill with user's email when checkbox is enabled
-                          setForm({...form, settings: {...form.settings, notifyOnSubmission: true, notificationEmail: user.email}});
-                        } else {
-                          setForm({...form, settings: {...form.settings, notifyOnSubmission: e.target.checked}});
-                        }
-                      }}
+                      onChange={(e) => setForm({...form, settings: {...form.settings, notifyOnSubmission: e.target.checked}})}
                       className="w-4 h-4"
                     />
                     <label htmlFor="notify_toggle" className="text-sm cursor-pointer">Notify me when form is submitted</label>
@@ -328,12 +293,9 @@ export default function FormBuilderPage() {
                         type="email"
                         value={form.settings?.notificationEmail || ''}
                         onChange={(e) => setForm({...form, settings: {...form.settings, notificationEmail: e.target.value}})}
-                        placeholder={user?.email || "your@email.com"}
+                        placeholder="your@email.com"
                         className="w-full px-3 py-2 border rounded text-sm"
                       />
-                      {user?.email && (
-                        <p className="text-xs text-slate-500 mt-1">Default: {user.email}</p>
-                      )}
                       <p className="text-xs text-slate-500 mt-1">You'll receive an email each time someone submits the form.</p>
                     </div>
                   )}

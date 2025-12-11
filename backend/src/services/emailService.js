@@ -3,16 +3,11 @@ const nodemailer = require('nodemailer');
 
 // Initialize transporter (configure with your email service)
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // Use STARTTLS
+  service: process.env.EMAIL_SERVICE || 'gmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  tls: {
-    rejectUnauthorized: false // Allow self-signed certificates
-  }
 });
 
 /**
@@ -22,14 +17,8 @@ const transporter = nodemailer.createTransport({
  * @param {Array} answers - Array of {fieldId, value} pairs
  */
 exports.sendResponseNotification = async (notificationEmail, form, answers) => {
-  console.log('=== EMAIL NOTIFICATION DEBUG ===');
-  console.log('Recipient:', notificationEmail);
-  console.log('EMAIL_USER configured:', !!process.env.EMAIL_USER);
-  console.log('EMAIL_PASS configured:', !!process.env.EMAIL_PASS);
-  console.log('Form title:', form.title);
-  
   if (!notificationEmail || !process.env.EMAIL_USER) {
-    console.log('❌ Email notification skipped: no recipient or credentials');
+    console.log('Email notification skipped: no recipient or credentials');
     return;
   }
 
@@ -71,22 +60,16 @@ exports.sendResponseNotification = async (notificationEmail, form, answers) => {
       </html>
     `;
 
-    const mailOptions = {
+    await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: notificationEmail,
       subject: `New Response: ${form.title}`,
       html: htmlContent,
-    };
+    });
 
-    console.log('Attempting to send email...');
-    const info = await transporter.sendMail(mailOptions);
-
-    console.log('✅ Email sent successfully!');
-    console.log('Message ID:', info.messageId);
-    console.log('Response:', info.response);
+    console.log(`Email sent to ${notificationEmail}`);
   } catch (err) {
-    console.error('❌ Error sending email:', err.message);
-    console.error('Full error:', err);
+    console.error('Error sending email:', err);
     // Don't throw - don't block form submission if email fails
   }
 };

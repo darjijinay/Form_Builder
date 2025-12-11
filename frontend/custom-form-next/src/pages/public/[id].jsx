@@ -76,17 +76,15 @@ export default function PublicFormPage(){
             </div>
 
             {/* Custom Details */}
-            {form.customDetails && Array.isArray(form.customDetails) && form.customDetails.length > 0 && (
+            {form.customDetails && form.customDetails.length > 0 && (
               <div className="mb-8 border-t pt-6">
                 <h3 className="text-sm font-semibold text-slate-600 mb-4 uppercase tracking-wide">Additional Information</h3>
                 <div className="space-y-3">
                   {form.customDetails.map((detail, idx) => (
-                    detail.label && detail.value && (
-                      <div key={idx} className="flex justify-between border-b pb-3 last:border-b-0">
-                        <span className="font-semibold text-slate-900">{detail.label}</span>
-                        <span className="text-slate-700">{detail.value}</span>
-                      </div>
-                    )
+                    <div key={idx} className="flex justify-between border-b pb-3 last:border-b-0">
+                      <span className="font-semibold text-slate-900">{detail.label}</span>
+                      <span className="text-slate-700">{detail.value}</span>
+                    </div>
                   ))}
                 </div>
               </div>

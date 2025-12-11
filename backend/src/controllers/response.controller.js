@@ -33,18 +33,10 @@ exports.submitResponse = async (req, res, next) => {
     });
 
     // Send email notification if enabled
-    console.log('=== CHECKING EMAIL NOTIFICATION SETTINGS ===');
-    console.log('Form settings:', form.settings);
-    console.log('notifyOnSubmission:', form.settings?.notifyOnSubmission);
-    console.log('notificationEmail:', form.settings?.notificationEmail);
-    
     if (form.settings?.notifyOnSubmission && form.settings?.notificationEmail) {
-      console.log('✅ Email notification enabled - calling sendResponseNotification...');
       sendResponseNotification(form.settings.notificationEmail, form, sanitizedAnswers).catch((err) => {
         console.error('Failed to send notification email:', err);
       });
-    } else {
-      console.log('❌ Email notification NOT enabled for this form');
     }
 
     res.status(201).json({ message: 'Response submitted', responseId: response._id });
