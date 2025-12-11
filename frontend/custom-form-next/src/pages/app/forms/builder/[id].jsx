@@ -4,10 +4,12 @@ import AppLayout from '../../../../components/layout/AppLayout';
 import FormBuilder from '../../../../components/builder/FormBuilder';
 import { useEffect, useState, useRef } from 'react';
 import { formApi } from '../../../../api/formApi';
+import { useAuthStore } from '../../../../store/authStore';
 
 export default function FormBuilderPage() {
   const router = useRouter();
   const { id } = router.query;
+  const user = useAuthStore((state) => state.user);
   const [form, setForm] = useState(null);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState('');
@@ -280,7 +282,14 @@ export default function FormBuilderPage() {
                       type="checkbox"
                       id="notify_toggle"
                       checked={!!form.settings?.notifyOnSubmission}
-                      onChange={(e) => setForm({...form, settings: {...form.settings, notifyOnSubmission: e.target.checked}})}
+                      onChange={(e) => {
+                        if (e.target.checked && !form.settings?.notificationEmail && user?.email) {
+                          // Auto-fill with user's email when checkbox is enabled
+                          setForm({...form, settings: {...form.settings, notifyOnSubmission: true, notificationEmail: user.email}});
+                        } else {
+                          setForm({...form, settings: {...form.settings, notifyOnSubmission: e.target.checked}});
+                        }
+                      }}
                       className="w-4 h-4"
                     />
                     <label htmlFor="notify_toggle" className="text-sm cursor-pointer">Notify me when form is submitted</label>
@@ -293,9 +302,12 @@ export default function FormBuilderPage() {
                         type="email"
                         value={form.settings?.notificationEmail || ''}
                         onChange={(e) => setForm({...form, settings: {...form.settings, notificationEmail: e.target.value}})}
-                        placeholder="your@email.com"
+                        placeholder={user?.email || "your@email.com"}
                         className="w-full px-3 py-2 border rounded text-sm"
                       />
+                      {user?.email && (
+                        <p className="text-xs text-slate-500 mt-1">Default: {user.email}</p>
+                      )}
                       <p className="text-xs text-slate-500 mt-1">You'll receive an email each time someone submits the form.</p>
                     </div>
                   )}
