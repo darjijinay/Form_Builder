@@ -3,6 +3,11 @@ const Form = require('../models/Form');
 const Response = require('../models/Response');
 const View = require('../models/View');
 const mongoose = require('mongoose');
+const {
+  aggregateResponses,
+  getSubmissionTimeline,
+  getFormStats,
+} = require('../utils/analyticsAggregator');
 
 // record a view event for a form
 exports.recordView = async (req, res, next) => {
@@ -149,5 +154,205 @@ exports.getOverview = async (req, res, next) => {
     });
   } catch (err) {
     next(err);
+  }
+};
+
+// GET /api/forms/:formId/analytics - detailed form analytics
+exports.getFormAnalytics = async (req, res, next) => {
+  try {
+    const { formId } = req.params;
+    const { startDate, endDate, groupBy = 'daily' } = req.query;
+
+    // Fetch form with auth check
+    const form = await Form.findById(formId);
+    if (!form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    // Authorization: only form owner can view analytics
+    if (form.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Build query filter
+    const query = { form: formId };
+    if (startDate || endDate) {
+      query.submittedAt = {};
+      if (startDate) query.submittedAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.submittedAt.$lte = end;
+      }
+    }
+
+    // Fetch responses and views
+    const responses = await Response.find(query).sort({ submittedAt: -1 });
+    const views = await View.find({ form: formId });
+
+    // Aggregate data
+    const fieldAnalytics = aggregateResponses(form, responses);
+    const timeline = getSubmissionTimeline(responses, groupBy);
+    const stats = getFormStats(form, responses, views);
+
+    res.json({
+      form: {
+        _id: form._id,
+        title: form.title,
+        description: form.description,
+      },
+      stats,
+      fieldAnalytics,
+      timeline,
+      responses: {
+        total: responses.length,
+        list: responses
+          .slice(0, 10) // Last 10 responses
+          .map((r) => ({
+            _id: r._id,
+            submittedAt: r.submittedAt,
+            answers: r.answers,
+          })),
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error fetching analytics:', error);
+    next(error);
+  }
+};
+
+// GET /api/forms/:formId/analytics/responses - with filtering/search
+exports.getFormResponses = async (req, res, next) => {
+  try {
+    const { formId } = req.params;
+    const { page = 1, limit = 20, search, startDate, endDate } = req.query;
+
+    // Authorization
+    const form = await Form.findById(formId);
+    if (!form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    if (form.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    // Build query
+    const query = { form: formId };
+    if (startDate || endDate) {
+      query.submittedAt = {};
+      if (startDate) query.submittedAt.$gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.submittedAt.$lte = end;
+      }
+    }
+
+    // Search in answers (simple substring match)
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { 'answers.value': { $regex: searchRegex } },
+      ];
+    }
+
+    // Pagination
+    const skip = (page - 1) * limit;
+    const [responses, total] = await Promise.all([
+      Response.find(query)
+        .sort({ submittedAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Response.countDocuments(query),
+    ]);
+
+    res.json({
+      responses,
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('❌ Error fetching responses:', error);
+    next(error);
+  }
+};
+
+// GET /api/forms/:formId/analytics/field/:fieldId - detailed field analytics
+exports.getFieldAnalytics = async (req, res, next) => {
+  try {
+    const { formId, fieldId } = req.params;
+
+    const form = await Form.findById(formId);
+    if (!form) {
+      return res.status(404).json({ error: 'Form not found' });
+    }
+
+    if (form.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    const field = form.fields.find((f) => f._id === fieldId);
+    if (!field) {
+      return res.status(404).json({ error: 'Field not found' });
+    }
+
+    const responses = await Response.find({ form: formId });
+    const fieldResponses = [];
+
+    responses.forEach((response) => {
+      const answer = response.answers.find((a) => a.fieldId === fieldId);
+      if (answer) {
+        fieldResponses.push({
+          value: answer.value,
+          submittedAt: response.submittedAt,
+        });
+      }
+    });
+
+    // Build detailed analytics
+    const analytics = {
+      field: {
+        _id: field._id,
+        label: field.label,
+        type: field.type,
+      },
+      totalResponses: fieldResponses.length,
+      completionRate: responses.length > 0 
+        ? ((fieldResponses.length / responses.length) * 100).toFixed(2)
+        : 0,
+      responses: fieldResponses,
+    };
+
+    // Add type-specific analysis
+    if (['radio', 'dropdown', 'checkbox'].includes(field.type)) {
+      const counts = {};
+      fieldResponses.forEach((r) => {
+        const val = Array.isArray(r.value) ? r.value.join(', ') : r.value;
+        counts[val] = (counts[val] || 0) + 1;
+      });
+      analytics.distribution = counts;
+    } else if (field.type === 'number') {
+      const numbers = fieldResponses
+        .map((r) => parseFloat(r.value))
+        .filter((v) => !isNaN(v));
+      if (numbers.length > 0) {
+        analytics.stats = {
+          min: Math.min(...numbers),
+          max: Math.max(...numbers),
+          avg: (numbers.reduce((a, b) => a + b, 0) / numbers.length).toFixed(2),
+          median: numbers.sort((a, b) => a - b)[Math.floor(numbers.length / 2)],
+        };
+      }
+    }
+
+    res.json(analytics);
+  } catch (error) {
+    console.error('❌ Error fetching field analytics:', error);
+    next(error);
   }
 };

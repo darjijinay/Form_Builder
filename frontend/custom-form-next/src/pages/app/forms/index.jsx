@@ -118,6 +118,12 @@ export default function MyFormsPage() {
                     Edit
                   </Link>
                   <Link
+                    href={`/app/forms/analytics/${f._id}`}
+                    className="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 hover:border-purple-200 hover:text-purple-500 text-center transition-all"
+                  >
+                    Analytics
+                  </Link>
+                  <Link
                     href={`/app/forms/responses/${f._id}`}
                     className="flex-1 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 hover:border-emerald-200 hover:text-emerald-500 text-center transition-all"
                   >
