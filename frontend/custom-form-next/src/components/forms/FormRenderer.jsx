@@ -85,7 +85,7 @@ export default function FormRenderer({ form, isPreview = false, onSubmit }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {form.fields.map((field) => (
         <div key={field._id} id={`field-wrapper-${field._id}`} className={shouldShowField(field) ? '' : 'hidden'}>
-          {renderField(field, isPreview, formValues[field._id], handleFieldChange)}
+          {renderField(field, isPreview, formValues[field._id], (value) => handleFieldChange(field._id, value))}
         </div>
       ))}
 
