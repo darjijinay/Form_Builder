@@ -27,20 +27,30 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
+    "/app/dashboard": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/app/dashboard.js"
+    ],
     "/app/forms": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
       "static/chunks/pages/app/forms.js"
     ],
-    "/app/forms/builder/[id]": [
+    "/app/forms/analytics/[id]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/app/forms/builder/[id].js"
+      "static/chunks/pages/app/forms/analytics/[id].js"
     ],
-    "/public/[id]": [
+    "/app/settings": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/public/[id].js"
+      "static/chunks/pages/app/settings.js"
+    ],
+    "/auth/login": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/auth/login.js"
     ]
   },
   "ampFirstPages": []

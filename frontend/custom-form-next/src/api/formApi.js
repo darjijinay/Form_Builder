@@ -2,6 +2,7 @@ import axiosClient from './axiosClient';
 
 export const formApi = {
   getMyForms: () => axiosClient.get('/forms'),
+  getFormById: (id) => axiosClient.get(`/forms/${id}`),
   getForm: (id) => axiosClient.get(`/forms/${id}`),
   createForm: (data) => axiosClient.post('/forms', data),
   updateForm: (id, data) => axiosClient.put(`/forms/${id}`, data),

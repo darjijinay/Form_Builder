@@ -2,8 +2,10 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/app/forms": "pages/app/forms.js",
-  "/public/[id]": "pages/public/[id].js",
+  "/app/settings": "pages/app/settings.js",
   "/": "pages/index.js",
-  "/app/forms/builder/[id]": "pages/app/forms/builder/[id].js"
+  "/auth/login": "pages/auth/login.js",
+  "/app/dashboard": "pages/app/dashboard.js",
+  "/app/forms": "pages/app/forms.js",
+  "/app/forms/analytics/[id]": "pages/app/forms/analytics/[id].js"
 }

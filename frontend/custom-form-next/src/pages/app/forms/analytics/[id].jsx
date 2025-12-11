@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import AppLayout from '../../../components/layout/AppLayout';
-import AnalyticsDashboard from '../../../components/analytics/AnalyticsDashboard';
-import analyticsApi from '../../../api/analyticsApi';
-import formApi from '../../../api/formApi';
+import AppLayout from '../../../../components/layout/AppLayout';
+import AnalyticsDashboard from '../../../../components/analytics/AnalyticsDashboard';
+import analyticsApi from '../../../../api/analyticsApi';
+import { formApi } from '../../../../api/formApi';
 
 export default function FormAnalytics() {
   const router = useRouter();

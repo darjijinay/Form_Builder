@@ -14,7 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import analyticsApi from '../../../api/analyticsApi';
+import analyticsApi from '../../api/analyticsApi';
 import CompletionRateCard from './CompletionRateCard';
 
 const COLORS = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
